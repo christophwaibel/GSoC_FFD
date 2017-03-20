@@ -10,8 +10,8 @@ using System.Threading.Tasks;
  *
  * This work is licensed under the GNU GPL license version 2 or later.
  */
- 
-namespace FastFluidSolver
+
+namespace FastFluidSolverrr
 {
     /// <summary>
     /// Extracts velocity and pressure from an FFD simulation
@@ -67,7 +67,7 @@ namespace FastFluidSolver
             velocity[0] = Utilities.trilinear_interpolation(x_scaled, y_scaled + 0.5, z_scaled + 0.5, fs.u);
             velocity[1] = Utilities.trilinear_interpolation(x_scaled + 0.5, y_scaled, z_scaled + 0.5, fs.v);
             velocity[2] = Utilities.trilinear_interpolation(x_scaled + 0.5, y_scaled + 0.5, z_scaled, fs.w);
-             
+
             return velocity;
         }
     }

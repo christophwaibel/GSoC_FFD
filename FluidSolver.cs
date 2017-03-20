@@ -1,5 +1,4 @@
-﻿using MathNet.Numerics.LinearAlgebra.Double;
-using MathNet.Numerics.LinearAlgebra.Storage;
+﻿
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -15,7 +14,7 @@ using System.Windows;
  * This work is licensed under the GNU GPL license version 2 or later.
  */
 
-namespace FastFluidSolver
+namespace FastFluidSolverrr
 {
     /// <summary>
     /// Solves the Navier-Stokes equations using the Fast Fluid Dynamics method
@@ -40,19 +39,21 @@ namespace FastFluidSolver
             public int backtrace_order;
             public double tol; //maximum relative error for Gauss-Seidel solver
             public bool verbose;
+            public bool mass_correction;
+            public double mass_corr_alpha;
         }
 
         private solver_struct solver_prams;
 
-        public double[,,] u; // x component of velocity
-        public double[,,] v; // y component of velocity
-        public double[,,] w; // z component of velocity
-        public double[,,] p; // pressure
+        public double[, ,] u; // x component of velocity
+        public double[, ,] v; // y component of velocity
+        public double[, ,] w; // z component of velocity
+        public double[, ,] p; // pressure
 
-        private double[,,] u_old; //scratch arrays for velocities
-        private double[,,] v_old;
-        private double[,,] w_old;
-        private double[,,] p_old;
+        private double[, ,] u_old; //scratch arrays for velocities
+        private double[, ,] v_old;
+        private double[, ,] w_old;
+        private double[, ,] p_old;
 
         private double dt;  //time step
         public int Nx { get; private set; } //number of points in each x coordinate direction
@@ -76,8 +77,8 @@ namespace FastFluidSolver
         /// <param name="v0">initial y component of velocity</param>
         /// <param name="w0">initial z component of velocity</param>
         /// <param name="solver_prams">structure containing solver options</param>
-        public FluidSolver(Domain omega, double dt, double nu, double[,,] u0, double[,,] v0,
-                double[,,] w0, solver_struct solver_prams)
+        public FluidSolver(Domain omega, double dt, double nu, double[, ,] u0, double[, ,] v0,
+                double[, ,] w0, solver_struct solver_prams)
         {
             Nx = omega.Nx;
             Ny = omega.Ny;
@@ -96,19 +97,19 @@ namespace FastFluidSolver
             p = new double[Nx, Ny, Nz];
 
             //set up initial pressure guess
-            for (int i = 0; i < Nx; i++)
+            Parallel.For(0, Nx, i =>
             {
                 for (int j = 0; j < Ny; j++)
                 {
                     for (int k = 0; k < Nz; k++)
                     {
-                        double x = (i - 0.5) * hx;
-                        p[i, j, k] = -x;
-                        //p[i,j,k] = 0;
+                        //double x = (i - 0.5) * hx;
+                        //p[i, j, k] = -x;
+                        p[i, j, k] = 0;
                         //p[i, j, k] = Math.Sin(Math.PI / omega.length_x * x);
                     }
                 }
-            }
+            });
 
             u = new double[u0.GetLength(0), u0.GetLength(1), u0.GetLength(2)];
             v = new double[v0.GetLength(0), v0.GetLength(1), v0.GetLength(2)];
@@ -163,13 +164,37 @@ namespace FastFluidSolver
         /// </summary>
         /// <param name="f">forces to add</param>
         /// <param name="x">velocity component array, one of u, v, w</param>
-        private void add_force(double[,,] f, ref double[,,] x)
+        //private void add_force(double[,,] f, ref double[,,] x)
+        //{
+        //    int Sx = x.GetLength(0);
+        //    int Sy = x.GetLength(1);
+        //    int Sz = x.GetLength(2);
+
+        //    for (int i = 0; i < Sx; i++)
+        //    {
+        //        for (int j = 0; j < Sy; j++)
+        //        {
+        //            for (int k = 0; k < Sz; k++)
+        //            {
+        //                x[i, j, k] += dt * f[i, j, k];
+        //            }
+        //        }
+        //    }
+        //}
+
+        /// <summary>
+        /// Update velocity by adding forcing tem, these can external forces like gravity or
+        /// buoyancy forces for example.
+        /// </summary>
+        /// <param name="f">forces to add</param>
+        /// <param name="x">velocity component array, one of u, v, w</param>
+        static void add_force(double[, ,] f, double[, ,] x, double dt)
         {
             int Sx = x.GetLength(0);
             int Sy = x.GetLength(1);
             int Sz = x.GetLength(2);
 
-            for (int i = 0; i < Sx; i++)
+            Parallel.For(0, Sx, i =>
             {
                 for (int j = 0; j < Sy; j++)
                 {
@@ -178,8 +203,12 @@ namespace FastFluidSolver
                         x[i, j, k] += dt * f[i, j, k];
                     }
                 }
-            }
+            });
+
         }
+
+
+
 
         /// <summary>
         /// Update velocity/concentration by resolving diffusion term. Solves the diffusion
@@ -195,12 +224,12 @@ namespace FastFluidSolver
         /// 2: centre of faces normal to x direction (x component of velocity)
         /// 3: centre of faces normal to y direction (y component of velocity)
         /// 4: centre of faces normal to z direction (z component of velocity)</remarks>
-        private void diffuse(double[,,] x_old, ref double[,,] x_new, int grid_type)
+        private void diffuse(double[, ,] x_old, ref double[, ,] x_new, int grid_type)
         {
             double a = 1 + 2 * nu * dt * (Math.Pow(hx, -2) + Math.Pow(hy, -2) + Math.Pow(hz, -2));
             double[] c = new double[6];
 
-            double[,,] b = new double[x_old.GetLength(0), x_old.GetLength(1), x_old.GetLength(2)];
+            double[, ,] b = new double[x_old.GetLength(0), x_old.GetLength(1), x_old.GetLength(2)];
             Array.Copy(x_old, 0, b, 0, x_old.Length);
 
             c[0] = -dt * nu * Math.Pow(hz, -2);
@@ -210,8 +239,12 @@ namespace FastFluidSolver
             c[4] = c[1];
             c[5] = c[0];
 
-            jacobi_solve(a, c, b, x_old, ref x_new, grid_type);
+            jacobi_solve(a, c, b, x_old, x_new, grid_type, solver_prams, Nx, Ny, Nz, omega, u, v, w, p, hx, hy, hz);
         }
+
+
+
+
 
         /// <summary>
         /// Projection step. Solves a Poisson equation for the pressure L(p) = div(u_old)
@@ -219,10 +252,10 @@ namespace FastFluidSolver
         /// </summary>
         private void project()
         {
-            double[,,] div = new double[Nx - 1, Ny - 1, Nz - 1];
+            double[, ,] div = new double[Nx - 1, Ny - 1, Nz - 1];
 
             // Calculate div(u_old) using finite differences
-            for (int i = 0; i < Nx; i++)
+            for (int i = 0; i < Nx; i ++)
             {
                 for (int j = 0; j < Ny; j++)
                 {
@@ -237,6 +270,7 @@ namespace FastFluidSolver
                 }
             }
 
+
             double a = -2 * (Math.Pow(hx, -2) + Math.Pow(hy, -2) + Math.Pow(hz, -2));
             double[] c = new double[6];
 
@@ -247,15 +281,15 @@ namespace FastFluidSolver
             c[4] = c[1];
             c[5] = c[0];
 
-            double[,,] p0 = new double[Nx, Ny, Nz]; // Initial guess for pressure
+            double[, ,] p0 = new double[Nx, Ny, Nz]; // Initial guess for pressure
             Array.Copy(p, p0, p.Length);
 
-            jacobi_solve(a, c, div, p0, ref p, 1);
+            jacobi_solve(a, c, div, p0, p, 1, solver_prams, Nx, Ny, Nz, omega, u, v, w, p, hx, hy, hz);
 
             double[] coordinate = new double[3];
 
             // Update velocity by subtracting grad(p)
-            for (int i = 0; i < u.GetLength(0); i++)
+            for (int i = 0; i < u.GetLength(0); i ++)
             {
                 for (int j = 0; j < u.GetLength(1); j++)
                 {
@@ -273,7 +307,7 @@ namespace FastFluidSolver
                 }
             }
 
-            for (int i = 0; i < v.GetLength(0); i++)
+            for (int i = 0; i < v.GetLength(0); i ++)
             {
                 for (int j = 0; j < v.GetLength(1); j++)
                 {
@@ -309,7 +343,8 @@ namespace FastFluidSolver
                 }
             }
 
-            apply_boundary_conditions_list();
+            //apply_boundary_conditions_list();
+            apply_boundary_conditions(Nx, Ny, Nz, omega, u, v, w, p);
         }
 
         /// <summary>
@@ -321,17 +356,132 @@ namespace FastFluidSolver
         /// <param name="vely">y component of velocity</param>
         /// <param name="velz">z component of velocity</param>
         /// <param name="grid_type">Grid type, as described in diffusion method</param>
-        private void advect(ref double[,,] x, double[,,] x0, double[,,] velx, double[,,] vely,
-                    double[,,] velz, int grid_type)
+        //private void advect(ref double[,,] x, double[,,] x0, double[,,] velx, double[,,] vely,
+        //            double[,,] velz, int grid_type)
+        //{
+        //    int Sx = x.GetLength(0);
+        //    int Sy = x.GetLength(1);
+        //    int Sz = x.GetLength(2);
+
+        //    DataExtractor de = new DataExtractor(omega, this);
+
+        //    // Loop over every node in x
+        //    for (int i = 1; i < Sx - 1; i++)
+        //    {
+        //        for (int j = 1; j < Sy - 1; j++)
+        //        {
+        //            for (int k = 1; k < Sz - 1; k++)
+        //            {
+        //                double xCoord, yCoord, zCoord;
+
+        //                double[] velocity0, velocity1;
+        //                xCoord = yCoord = zCoord = 0;
+
+        //                // Get coordinate of node
+        //                switch (grid_type)
+        //                {
+        //                    case 1:
+        //                        xCoord = (i - 0.5) * hx;
+        //                        yCoord = (j - 0.5) * hy;
+        //                        zCoord = (k - 0.5) * hz;
+
+        //                        break;
+
+        //                    case 2:
+        //                        xCoord = i * hx;
+        //                        yCoord = (j - 0.5) * hy;
+        //                        zCoord = (k - 0.5) * hz;
+
+        //                        break;
+
+        //                    case 3:
+        //                        xCoord = (i - 0.5) * hx;
+        //                        yCoord = j * hy;
+        //                        zCoord = (k - 0.5) * hz;
+
+        //                        break;
+
+        //                    case 4:
+        //                        xCoord = (i - 0.5) * hx;
+        //                        yCoord = (j - 0.5) * hy;
+        //                        zCoord = k * hz;
+
+        //                        break;
+        //                }
+
+        //                double[] coordinate = new double[] { xCoord, yCoord, zCoord };
+
+        //                if (Utilities.in_domain(coordinate, omega))
+        //                {
+        //                    // Find velocity at node
+        //                    velocity0 = de.get_velocity(xCoord, yCoord, zCoord);
+        //                    double[] coordBacktraced = new double[3];
+
+        //                    switch (solver_prams.backtrace_order)
+        //                    {
+        //                        case 1:
+
+        //                            // Perform linear backtrace to find origin of fluid element
+        //                            coordBacktraced[0] = xCoord - dt * (velocity0[0]);
+        //                            coordBacktraced[1] = yCoord - dt * (velocity0[1]);
+        //                            coordBacktraced[2] = zCoord - dt * (velocity0[2]);
+
+        //                            if (Utilities.in_domain(coordBacktraced, omega))
+        //                            {
+        //                                // Set velocity at node to be velocity at backtraced coordinate
+        //                                x[i, j, k] = Utilities.trilinear_interpolation(i - (dt / hx) * velocity0[0],
+        //                                            j - (dt / hy) * velocity0[1], k - (dt / hz) * velocity0[2], x0);
+        //                            }
+
+        //                            break;
+
+        //                        case 2:
+
+        //                            // Perform two step second order backtrace to find origin of fluid element
+        //                            coordBacktraced[0] = xCoord - (dt / 2) * (velocity0[0]);
+        //                            coordBacktraced[1] = yCoord - (dt / 2) * (velocity0[1]);
+        //                            coordBacktraced[2] = zCoord - (dt / 2) * (velocity0[2]);
+
+        //                            velocity1 = de.get_velocity(coordBacktraced[0], coordBacktraced[1], coordBacktraced[2]);
+
+        //                            coordBacktraced[0] -= (dt / 2) * velocity1[0];
+        //                            coordBacktraced[1] -= (dt / 2) * velocity1[1];
+        //                            coordBacktraced[2] -= (dt / 2) * velocity1[2];
+
+        //                            velocity1 = de.get_velocity(coordBacktraced[0], coordBacktraced[1], coordBacktraced[2]);
+
+        //                            if (Utilities.in_domain(coordBacktraced, omega))
+        //                            {
+        //                                // Set velocity at node to be velocity at backtraced coordinate
+        //                                x[i, j, k] = Utilities.trilinear_interpolation(
+        //                                                i - (dt / (2 * hx)) * (velocity0[0] + velocity1[0]),
+        //                                                j - (dt / (2 * hy)) * (velocity0[1] + velocity1[1]),
+        //                                                k - (dt / (2 * hz)) * (velocity0[2] + velocity1[2]), x0);
+        //                            }
+        //                            break;
+        //                    }
+        //                }
+        //            }
+        //        }
+        //    }
+
+        //    //apply_boundary_conditions_list();
+        //    apply_boundary_conditions(Nx, Ny, Nz, omega, u, v, w, p);
+        //}
+
+        private static void advect(double[, ,] x, double[, ,] x0, double[, ,] velx, double[, ,] vely,
+                   double[, ,] velz, int grid_type, Domain omega, FluidSolver thiss, double hx, double hy, double hz,
+            solver_struct solver_prams, double dt,
+            int Nx, int Ny, int Nz, double[, ,] u, double[, ,] v, double[, ,] w, double[, ,] p)
         {
             int Sx = x.GetLength(0);
             int Sy = x.GetLength(1);
             int Sz = x.GetLength(2);
 
-            DataExtractor de = new DataExtractor(omega, this);
+            DataExtractor de = new DataExtractor(omega, thiss);
 
             // Loop over every node in x
-            for (int i = 1; i < Sx - 1; i++)
+            Parallel.For(1, Sx - 1, i =>
             {
                 for (int j = 1; j < Sy - 1; j++)
                 {
@@ -428,19 +578,21 @@ namespace FastFluidSolver
                         }
                     }
                 }
-            }
+            });
 
-            apply_boundary_conditions_list();
+            //apply_boundary_conditions_list();
+            apply_boundary_conditions(Nx, Ny, Nz, omega, u, v, w, p);
         }
+
 
         /// <summary>
         /// Applies the boundary conditions.
         /// </summary>
         /// <remarks>The staggered grid makes this the longest part of the code.</remarks>
-        private void apply_boundary_conditions()
+        private static void apply_boundary_conditions(int Nx, int Ny, int Nz, Domain omega, double[, ,] u, double[, ,] v, double[, ,] w, double[, ,] p)
         {
             // loop over all cells
-            for (int i = 1; i < Nx - 1; i++)
+            Parallel.For(1, Nx - 1, i =>
             {
                 for (int j = 1; j < Ny - 1; j++)
                 {
@@ -930,166 +1082,166 @@ namespace FastFluidSolver
                         }
                     }
                 }
-            }
+            });
         }
 
         /// <summary>
         /// Applies the boundary conditions.
         /// </summary>
         /// <remarks>The staggered grid makes this the longest part of the code.</remarks>
-        private void apply_boundary_conditions_list()
-        {
-            /****************************************************************
-            * 6 faces, +x, -x, +y, -y, +z, -z
-            *
-            * For velocity normal to face, simply prescribe value, for other
-            * velocities prescribe average of a point inside the domain and
-            * a ghost point outside the domain
-            ***************************************************************/
+        //private void apply_boundary_conditions_list()
+        //{
+        //    /****************************************************************
+        //    * 6 faces, +x, -x, +y, -y, +z, -z
+        //    *
+        //    * For velocity normal to face, simply prescribe value, for other
+        //    * velocities prescribe average of a point inside the domain and
+        //    * a ghost point outside the domain
+        //    ***************************************************************/
 
-            foreach (int[] indices in omega.normal_x_list)
-            {
-                int i = indices[0];
-                int j = indices[1];
-                int k = indices[2];
-                int direction = indices[3];
+        //    foreach (int[] indices in omega.normal_x_list)
+        //    {
+        //        int i = indices[0];
+        //        int j = indices[1];
+        //        int k = indices[2];
+        //        int direction = indices[3];
 
-                if (omega.obstacle_cells[i, j, k] != 1)
-                {
-                    if (direction == -1)//-x face
-                    {
-                        p[i - 1, j, k] = p[i, j, k];
+        //        if (omega.obstacle_cells[i, j, k] != 1)
+        //        {
+        //            if (direction == -1)//-x face
+        //            {
+        //                p[i - 1, j, k] = p[i, j, k];
 
-                        if (omega.outflow_boundary_x[i, j, k] == 1)
-                        {
-                            u[i - 1, j, k] = u[i, j, k];
-                            v[i - 1, j, k] = v[i, j, k];
-                            w[i - 1, j, k] = w[i, j, k];
-                        }
-                        else
-                        {
-                            u[i - 1, j, k] = omega.boundary_u[i - 1, j, k];
-                            v[i - 1, j, k] = 2 * omega.boundary_v[i - 1, j, k] - v[i, j, k];
-                            w[i - 1, j, k] = 2 * omega.boundary_w[i - 1, j, k] - w[i, j, k];
-                        }
-                    }
+        //                if (omega.outflow_boundary_x[i, j, k] == 1)
+        //                {
+        //                    u[i - 1, j, k] = u[i, j, k];
+        //                    v[i - 1, j, k] = v[i, j, k];
+        //                    w[i - 1, j, k] = w[i, j, k];
+        //                }
+        //                else
+        //                {
+        //                    u[i - 1, j, k] = omega.boundary_u[i - 1, j, k];
+        //                    v[i - 1, j, k] = 2 * omega.boundary_v[i - 1, j, k] - v[i, j, k];
+        //                    w[i - 1, j, k] = 2 * omega.boundary_w[i - 1, j, k] - w[i, j, k];
+        //                }
+        //            }
 
-                    if (direction == 1)//+x face
-                    {
-                        p[i + 1, j, k] = p[i, j, k];
+        //            if (direction == 1)//+x face
+        //            {
+        //                p[i + 1, j, k] = p[i, j, k];
 
-                        if (omega.outflow_boundary_x[i, j, k] == 1)
-                        {
-                            u[i, j, k] = u[i - 1, j, k];
-                            v[i + 1, j, k] = v[i, j, k];
-                            w[i + 1, j, k] = w[i, j, k];
-                        }
-                        else
-                        {
-                            u[i, j, k] = omega.boundary_u[i, j, k];
-                            v[i + 1, j, k] = 2 * omega.boundary_v[i + 1, j, k] - v[i, j, k];
-                            w[i + 1, j, k] = 2 * omega.boundary_w[i + 1, j, k] - w[i, j, k];
-                        }
-                    }
-                }
-            }
+        //                if (omega.outflow_boundary_x[i, j, k] == 1)
+        //                {
+        //                    u[i, j, k] = u[i - 1, j, k];
+        //                    v[i + 1, j, k] = v[i, j, k];
+        //                    w[i + 1, j, k] = w[i, j, k];
+        //                }
+        //                else
+        //                {
+        //                    u[i, j, k] = omega.boundary_u[i, j, k];
+        //                    v[i + 1, j, k] = 2 * omega.boundary_v[i + 1, j, k] - v[i, j, k];
+        //                    w[i + 1, j, k] = 2 * omega.boundary_w[i + 1, j, k] - w[i, j, k];
+        //                }
+        //            }
+        //        }
+        //    }
 
-            foreach (int[] indices in omega.normal_y_list)
-            {
-                int i = indices[0];
-                int j = indices[1];
-                int k = indices[2];
-                int direction = indices[3];
+        //    foreach (int[] indices in omega.normal_y_list)
+        //    {
+        //        int i = indices[0];
+        //        int j = indices[1];
+        //        int k = indices[2];
+        //        int direction = indices[3];
 
-                if (omega.obstacle_cells[i, j, k] != 1)
-                {
-                    if (direction == -1)//-x face
-                    {
-                        p[i, j - 1, k] = p[i, j, k];
+        //        if (omega.obstacle_cells[i, j, k] != 1)
+        //        {
+        //            if (direction == -1)//-y face
+        //            {
+        //                p[i, j - 1, k] = p[i, j, k];
 
-                        if (omega.outflow_boundary_y[i, j, k] == 1)
-                        {
-                            u[i, j - 1, k] = u[i, j, k];
-                            v[i, j - 1, k] = v[i, j, k];
-                            w[i, j - 1, k] = w[i, j, k];
-                        }
-                        else
-                        {
-                            u[i, j - 1, k] = 2 * omega.boundary_u[i, j - 1, k] - u[i, j, k];
-                            v[i, j - 1, k] = omega.boundary_v[i, j - 1, k];
-                            w[i, j - 1, k] = 2 * omega.boundary_w[i, j - 1, k] - w[i, j, k];
-                        }
-                    }
+        //                if (omega.outflow_boundary_y[i, j, k] == 1)
+        //                {
+        //                    u[i, j - 1, k] = u[i, j, k];
+        //                    v[i, j - 1, k] = v[i, j, k];
+        //                    w[i, j - 1, k] = w[i, j, k];
+        //                }
+        //                else
+        //                {
+        //                    u[i, j - 1, k] = 2 * omega.boundary_u[i, j - 1, k] - u[i, j, k];
+        //                    v[i, j - 1, k] = omega.boundary_v[i, j - 1, k];
+        //                    w[i, j - 1, k] = 2 * omega.boundary_w[i, j - 1, k] - w[i, j, k];
+        //                }
+        //            }
 
-                    if (direction == 1)//+y face
-                    {
-                        p[i, j + 1, k] = p[i, j, k];
+        //            if (direction == 1)//+y face
+        //            {
+        //                p[i, j + 1, k] = p[i, j, k];
 
-                        if (omega.outflow_boundary_y[i, j, k] == 1)
-                        {
-                            u[i, j + 1, k] = u[i, j, k];
-                            v[i, j, k] = v[i, j - 1, k];
-                            w[i, j + 1, k] = w[i, j, k];
-                        }
-                        else
-                        {
-                            u[i, j + 1, k] = 2 * omega.boundary_u[i, j + 1, k] - u[i, j, k];
-                            v[i, j, k] = omega.boundary_v[i, j, k];
-                            w[i, j + 1, k] = 2 * omega.boundary_w[i, j + 1, k] - w[i, j, k];
-                        }
-                    }
-                }
-            }
+        //                if (omega.outflow_boundary_y[i, j, k] == 1)
+        //                {
+        //                    u[i, j + 1, k] = u[i, j, k];
+        //                    v[i, j, k] = v[i, j - 1, k];
+        //                    w[i, j + 1, k] = w[i, j, k];
+        //                }
+        //                else
+        //                {
+        //                    u[i, j + 1, k] = 2 * omega.boundary_u[i, j + 1, k] - u[i, j, k];
+        //                    v[i, j, k] = omega.boundary_v[i, j, k];
+        //                    w[i, j + 1, k] = 2 * omega.boundary_w[i, j + 1, k] - w[i, j, k];
+        //                }
+        //            }
+        //        }
+        //    }
 
-            foreach (int[] indices in omega.normal_z_list)
-            {
-                int i = indices[0];
-                int j = indices[1];
-                int k = indices[2];
-                int direction = indices[3];
+        //    foreach (int[] indices in omega.normal_z_list)
+        //    {
+        //        int i = indices[0];
+        //        int j = indices[1];
+        //        int k = indices[2];
+        //        int direction = indices[3];
 
-                if (omega.obstacle_cells[i, j, k] != 1)
-                {
-                    if (direction == -1)//-x face
-                    {
-                        p[i, j, k - 1] = p[i, j, k];
+        //        if (omega.obstacle_cells[i, j, k] != 1)
+        //        {
+        //            if (direction == -1)//-z face
+        //            {
+        //                p[i, j, k - 1] = p[i, j, k];
 
-                        if (omega.outflow_boundary_z[i, j, k] == 1)
-                        {
-                            u[i, j, k - 1] = u[i, j, k];
-                            v[i, j, k - 1] = v[i, j, k];
-                            w[i, j, k - 1] = w[i, j, k];
-                        }
-                        else
-                        {
-                            u[i, j, k - 1] = 2 * omega.boundary_u[i, j, k - 1] - u[i, j, k];
-                            v[i, j, k - 1] = 2 * omega.boundary_v[i, j, k - 1] - v[i, j, k];
-                            w[i, j, k - 1] = omega.boundary_w[i, j, k - 1];
-                        }
-                    }
+        //                if (omega.outflow_boundary_z[i, j, k] == 1)
+        //                {
+        //                    u[i, j, k - 1] = u[i, j, k];
+        //                    v[i, j, k - 1] = v[i, j, k];
+        //                    w[i, j, k - 1] = w[i, j, k];
+        //                }
+        //                else
+        //                {
+        //                    u[i, j, k - 1] = 2 * omega.boundary_u[i, j, k - 1] - u[i, j, k];
+        //                    v[i, j, k - 1] = 2 * omega.boundary_v[i, j, k - 1] - v[i, j, k];
+        //                    w[i, j, k - 1] = omega.boundary_w[i, j, k - 1];
+        //                }
+        //            }
 
-                    if (direction == 1)//+z face
-                    {
-                        p[i, j, k + 1] = p[i, j, k];
+        //            if (direction == 1)//+z face
+        //            {
+        //                p[i, j, k + 1] = p[i, j, k];
 
-                        if (omega.outflow_boundary_z[i, j, k] == 1)
-                        {
-                            u[i, j, k + 1] = u[i, j, k];
-                            v[i, j, k + 1] = v[i, j, k];
-                            w[i, j, k] = w[i, j, k - 1];
-                        }
-                        else
-                        {
-                            u[i, j, k + 1] = 2 * omega.boundary_u[i, j, k + 1] - u[i, j, k];
-                            v[i, j, k + 1] = 2 * omega.boundary_v[i, j, k + 1] - v[i, j, k];
-                            w[i, j, k] = omega.boundary_w[i, j, k];
-                        }
-                    }
-                }
-            }
+        //                if (omega.outflow_boundary_z[i, j, k] == 1)
+        //                {
+        //                    u[i, j, k + 1] = u[i, j, k];
+        //                    v[i, j, k + 1] = v[i, j, k];
+        //                    w[i, j, k] = w[i, j, k - 1];
+        //                }
+        //                else
+        //                {
+        //                    u[i, j, k + 1] = 2 * omega.boundary_u[i, j, k + 1] - u[i, j, k];
+        //                    v[i, j, k + 1] = 2 * omega.boundary_v[i, j, k + 1] - v[i, j, k];
+        //                    w[i, j, k] = omega.boundary_w[i, j, k];
+        //                }
+        //            }
+        //        }
+        //    }
 
-            //TO DO: ADD IN EDGE AND CORNER CASES
-        }
+        //    //TO DO: ADD IN EDGE AND CORNER CASES
+        //}
 
         /// <summary>
         /// Calculate mass inflow and outflow
@@ -1257,13 +1409,17 @@ namespace FastFluidSolver
         /// <param name="f_x">x component of forcing term</param>
         /// <param name="f_y">y component of forcing term</param>
         /// <param name="f_z">z component of forcing term</param>
-        public void time_step(double[,,] f_x, double[,,] f_y, double[,,] f_z)
+        public void time_step(double[, ,] f_x, double[, ,] f_y, double[, ,] f_z)
         {
-            apply_boundary_conditions_list();
+            //apply_boundary_conditions_list();
+            apply_boundary_conditions(Nx, Ny, Nz, omega, u, v, w, p);
 
-            add_force(f_x, ref u);
-            add_force(f_y, ref v);
-            add_force(f_z, ref w);
+            //add_force(f_x, ref u);
+            //add_force(f_y, ref v);
+            //add_force(f_z, ref w);
+            add_force(f_x, u, dt);
+            add_force(f_y, v, dt);
+            add_force(f_z, w, dt);
 
             Array.Copy(u, 0, u_old, 0, u.Length);
             Array.Copy(v, 0, v_old, 0, v.Length);
@@ -1281,11 +1437,11 @@ namespace FastFluidSolver
             Array.Copy(w, 0, w_old, 0, w.Length);
             Array.Copy(p, 0, p_old, 0, p.Length);
 
-            advect(ref u, u_old, u_old, v_old, w_old, 2);
-            advect(ref v, v_old, u_old, v_old, w_old, 3);
-            advect(ref w, w_old, u_old, v_old, w_old, 4);
+            advect(u, u_old, u_old, v_old, w_old, 2, omega, this, hx, hy, hz, solver_prams, dt, Nx, Ny, Nz, u, v, w, p);
+            advect(v, v_old, u_old, v_old, w_old, 3, omega, this, hx, hy, hz, solver_prams, dt, Nx, Ny, Nz, u, v, w, p);
+            advect(w, w_old, u_old, v_old, w_old, 4, omega, this, hx, hy, hz, solver_prams, dt, Nx, Ny, Nz, u, v, w, p);
 
-            // apply_mass_correction(0);
+            if (solver_prams.mass_correction == true) apply_mass_correction(solver_prams.mass_corr_alpha);
 
             project();
         }
@@ -1302,10 +1458,10 @@ namespace FastFluidSolver
         /// <param name="grid_type">grid type as described in diffusion method</param>
         /// <remarks>The coefficients for the 6 nonzero entries in each row are given in the
         /// order x[i,j,k-1], x[i,j-1,k], x[i-1,j,k], x[i+1,j,k], x[i,j+1,k, x[i,j,k+1]</remarks>
-        private void jacobi_solve(double a, double[] c, double[,,] b, double[,,] x0, ref double[,,] x1, int grid_type)
+        private void jacobi_solve_old(double a, double[] c, double[, ,] b, double[, ,] x0, ref double[, ,] x1, int grid_type)
         {
-            Stopwatch stopWatch = new Stopwatch();
-            stopWatch.Start();
+            //Stopwatch stopWatch = new Stopwatch();
+            //stopWatch.Start();
 
             int Sx = x0.GetLength(0);
             int Sy = x0.GetLength(1);
@@ -1325,7 +1481,8 @@ namespace FastFluidSolver
                     x0[3, 3, 3] = 0;
                 }*/
 
-                apply_boundary_conditions_list();
+                //apply_boundary_conditions_list();
+                apply_boundary_conditions(Nx, Ny, Nz, omega, u, v, w, p);
 
                 for (int k = 1; k < Sz - 1; k++)
                 {
@@ -1380,14 +1537,107 @@ namespace FastFluidSolver
                 Array.Copy(x1, 0, x0, 0, x1.Length);
             }
 
-            stopWatch.Stop();
-            TimeSpan ts = stopWatch.Elapsed;
+            //stopWatch.Stop();
+            //TimeSpan ts = stopWatch.Elapsed;
 
-            if (solver_prams.verbose)
-            {
-                Console.WriteLine("Jacobi solver completed with residual of {0} in {1} iterations in {2} seconds",
-                    res, iter, ts.TotalSeconds);
-            }
+            //if (solver_prams.verbose)
+            //{
+            //    Console.WriteLine("Jacobi solver completed with residual of {0} in {1} iterations in {2} seconds",
+            //        res, iter, ts.TotalSeconds);
+            //}
         }
+
+        private static void jacobi_solve(double a, double[] c, double[, ,] b, double[, ,] x0, double[, ,] x1, int grid_type, solver_struct solver_prams,
+            int Nx, int Ny, int Nz, Domain omega, double[, ,] u, double[, ,] v, double[, ,] w, double[, ,] p,
+            double hx, double hy, double hz)
+        {
+            //Stopwatch stopWatch = new Stopwatch();
+            //stopWatch.Start();
+
+            int Sx = x0.GetLength(0);
+            int Sy = x0.GetLength(1);
+            int Sz = x0.GetLength(2);
+
+            int iter = 0;
+            double res = 2 * solver_prams.tol;
+
+            double[] coordinate = new double[3];
+
+            while (iter < solver_prams.min_iter ||
+                (iter < solver_prams.max_iter && res > solver_prams.tol))
+            {
+                /*if (grid_type == 1)
+                {
+                    x1[3, 3, 3] = 0;
+                    x0[3, 3, 3] = 0;
+                }*/
+
+                //apply_boundary_conditions_list();
+                apply_boundary_conditions(Nx, Ny, Nz, omega, u, v, w, p);
+
+                Parallel.For(1, Sz - 1, k =>
+                {
+                    for (int j = 1; j < Sy - 1; j++)
+                    {
+                        for (int i = 1; i < Sx - 1; i++)
+                        {
+                            switch (grid_type)
+                            {
+                                case 1:
+                                    coordinate[0] = (i - 0.5) * hx;
+                                    coordinate[1] = (j - 0.5) * hy;
+                                    coordinate[2] = (k - 0.5) * hz;
+                                    break;
+
+                                case 2:
+                                    coordinate[0] = i * hx;
+                                    coordinate[1] = (j - 0.5) * hy;
+                                    coordinate[2] = (k - 0.5) * hz;
+                                    break;
+
+                                case 3:
+                                    coordinate[0] = (i - 0.5) * hx;
+                                    coordinate[1] = j * hy;
+                                    coordinate[2] = (k - 0.5) * hz;
+                                    break;
+
+                                case 4:
+                                    coordinate[0] = (i - 0.5) * hx;
+                                    coordinate[1] = (j - 0.5) * hy;
+                                    coordinate[2] = k * hz;
+                                    break;
+                            }
+
+                            if (Utilities.in_domain(coordinate, omega))
+                            {
+                                //if (grid_type != 1 || !( i == 3 && j == 3 && k == 3))
+                                {
+                                    x1[i, j, k] = (b[i, j, k] - (c[0] * x0[i, j, k - 1] +
+                                        c[1] * x0[i, j - 1, k] + c[2] * x0[i - 1, j, k] +
+                                        c[3] * x0[i + 1, j, k] + c[4] * x0[i, j + 1, k] +
+                                        c[5] * x0[i, j, k + 1])) / a;
+                                }
+                            }
+                        }
+                    }
+                });
+
+                res = Utilities.compute_L2_difference(x0, x1);
+                iter++;
+
+                Array.Copy(x1, 0, x0, 0, x1.Length);
+            }
+
+            //stopWatch.Stop();
+            //TimeSpan ts = stopWatch.Elapsed;
+
+            //if (solver_prams.verbose)
+            //{
+            //    Console.WriteLine("Jacobi solver completed with residual of {0} in {1} iterations in {2} seconds",
+            //        res, iter, ts.TotalSeconds);
+            //}
+        }
+
+
     }
 }

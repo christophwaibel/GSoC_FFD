@@ -10,8 +10,8 @@ using System.Threading.Tasks;
  *
  * This work is licensed under the GNU GPL license version 2 or later.
  */
- 
-namespace FastFluidSolver
+
+namespace FastFluidSolverrr
 {
     /// <summary>
     /// Ultilities that are common to multiple classes.
