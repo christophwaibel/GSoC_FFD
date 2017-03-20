@@ -14,7 +14,7 @@ using System.Windows;
  * This work is licensed under the GNU GPL license version 2 or later.
  */
 
-namespace FastFluidSolverrr
+namespace FastFluidSolverMT
 {
     /// <summary>
     /// Solves the Navier-Stokes equations using the Fast Fluid Dynamics method
