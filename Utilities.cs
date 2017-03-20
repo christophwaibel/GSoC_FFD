@@ -11,7 +11,7 @@ using System.Threading.Tasks;
  * This work is licensed under the GNU GPL license version 2 or later.
  */
 
-namespace FastFluidSolverrr
+namespace FastFluidSolverMT
 {
     /// <summary>
     /// Ultilities that are common to multiple classes.
