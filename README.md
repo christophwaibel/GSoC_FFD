@@ -5,12 +5,12 @@ Modified after: https://github.com/lukasbystricky/GSoC_FFD
 
 
 To Do:
-[] bug: pressure field keeps updating in an open domain
-[] add energy transportation (Boussinesque approximation)
-[] add pollution transportation (Fick's law)
-[] add numeric convergence indicators
-[] try different PDE solvers (multigrid, conjugate gradient, TDMA...?) 
+- [] bug: pressure field keeps updating in an open domain
+- [] add energy transportation (Boussinesque approximation)
+- [] add pollution transportation (Fick's law)
+- [] add numeric convergence indicators
+- [] try different PDE solvers (multigrid, conjugate gradient, TDMA...?) 
 <br>
-[] parallelize on GPU
+- [] parallelize on GPU
 <br>
-[] meta models for spatially resolved effective viscosity 
+- [] meta models for spatially resolved effective viscosity 
