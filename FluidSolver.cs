@@ -10,11 +10,12 @@ using System.Windows;
 /*
  * FluidSolver.cs
  * Copyright 2016 Lukas Bystricky <lb13f@my.fsu.edu>
+ * Modified 2017 by: <chwaibel@student.ethz.ch>
  *
- * This work is licensed under the GNU GPL license version 2 or later.
+ * This work is licensed under the GNU GPL license version 3 or later.
  */
 
-namespace FastFluidSolverMT
+namespace FastFluidSolverrr
 {
     /// <summary>
     /// Solves the Navier-Stokes equations using the Fast Fluid Dynamics method
