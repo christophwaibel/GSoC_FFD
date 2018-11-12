@@ -4,21 +4,24 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using FastFluidSolverMT;
+
 /*
  * BuildingSimulation.cs
  * Copyright 2016 Lukas Bystricky <lb13f@my.fsu.edu>
+ * modified 2018 by Christoph Waibel <chwaibel@student.ethz.ch>
  *
  * This work is licensed under the GNU GPL license version 2 or later.
  */
  
-namespace FastFluidSolver
+namespace Test
 {
     /// <summary>
     /// Driver to simulate wind flow around 3 buildings.
     /// </summary>
-    class BuildingSimulation
+    internal class BuildingSimulation
     {
-        static void Main()
+        internal static void Run()
         {
             // Set mesh parameters, here we ask for Nx cells in the x direction
             // Ny cells in the y direction and Nz cells in the z direction (ignoring ghost cells)
@@ -49,8 +52,8 @@ namespace FastFluidSolver
 
             solver_prams.tol = 1e-3;
             solver_prams.min_iter = 1;
-            solver_prams.max_iter = 30;
-            solver_prams.verbose = true;
+            solver_prams.max_iter = 100;
+            solver_prams.verbose = false;
             solver_prams.backtrace_order = 2;
 
             // Create domain
@@ -70,8 +73,8 @@ namespace FastFluidSolver
             PostProcessor pp = new PostProcessor(ffd, omega);
             
             int tstep = 0;
-            pp.export_data_vtk(String.Concat("city_test_", tstep, ".vtk"), 0, false);
-            pp.export_geometry_vtk("city_test_geometry.vtk", 0);
+            //pp.export_data_vtk(String.Concat("city_test_", tstep, ".vtk"), 0, false);
+            //pp.export_geometry_vtk("city_test_geometry.vtk", 0);
 
             // Run time loop
             while (t < tf)
@@ -83,7 +86,9 @@ namespace FastFluidSolver
 
                 // Solve single time step and export results
                 ffd.time_step(f_x, f_y, f_z);
-                pp.export_data_vtk(String.Concat("city_test_", tstep, ".vtk"), t, false);
+                //pp.export_data_vtk(String.Concat("city_test_", tstep, ".vtk"), t, false);
+
+                if(t % 1 == 1) Console.ReadKey();
             }
         }
     }
