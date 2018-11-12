@@ -1,0 +1,8 @@
+c:\users\christoph\documents\visual studio 2012\Projects\FastFluidSolverMT\Test\bin\Debug\Test.exe.config
+c:\users\christoph\documents\visual studio 2012\Projects\FastFluidSolverMT\Test\obj\Debug\Test.csprojResolveAssemblyReference.cache
+c:\users\christoph\documents\visual studio 2012\Projects\FastFluidSolverMT\Test\bin\Debug\Test.exe
+c:\users\christoph\documents\visual studio 2012\Projects\FastFluidSolverMT\Test\bin\Debug\Test.pdb
+c:\users\christoph\documents\visual studio 2012\Projects\FastFluidSolverMT\Test\bin\Debug\FastFluidSolverMT.dll
+c:\users\christoph\documents\visual studio 2012\Projects\FastFluidSolverMT\Test\bin\Debug\FastFluidSolverMT.pdb
+c:\users\christoph\documents\visual studio 2012\Projects\FastFluidSolverMT\Test\obj\Debug\Test.exe
+c:\users\christoph\documents\visual studio 2012\Projects\FastFluidSolverMT\Test\obj\Debug\Test.pdb
