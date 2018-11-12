@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 
+using FastFluidSolverMT;
 /*
  * ConvergenceTest.cs
  * Copyright 2016 Lukas Bystricky <lb13f@my.fsu.edu>
@@ -12,14 +13,14 @@ using System.IO;
  * This work is licensed under the GNU GPL license version 2 or later.
  */
  
-namespace FastFluidSolver
+namespace Test
 {
     /// <summary>
     /// Runs a convergence test based on the exact solution given by Ethier and Steinman.
     /// </summary>
     class Convergence
     {
-        static void Main()
+        static void Run()
         {
             const double EPS = 1e-8;
 

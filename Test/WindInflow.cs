@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using FastFluidSolverMT;
 /*
  * WindInflow.cs
  * Copyright 2016 Lukas Bystricky <lb13f@my.fsu.edu>
@@ -11,7 +12,7 @@ using System.Threading.Tasks;
  * This work is licensed under the GNU GPL license version 2 or later.
  */
  
-namespace FastFluidSolver
+namespace Test
 {
     /// <summary>
     /// Domain with an exponential wind profile on the inflow (x = 0), 
