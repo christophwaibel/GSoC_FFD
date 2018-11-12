@@ -12,7 +12,7 @@ using System.Threading.Tasks;
  * This work is licensed under the GNU GPL license version 3 or later.
  */
 
-namespace FastFluidSolverrr
+namespace FastFluidSolverMT
 {
     public class Domain
     {
