@@ -30,8 +30,8 @@ namespace Test
             int Nz = 30;
 
             // Set time step and viscosity
-            double dt = 0.1;
-            double nu = 1e-5;
+            double dt = 0.5;
+            double nu = 1e-3;
 
             // Set simulation start and finish times
             double tf = 100;
@@ -48,13 +48,13 @@ namespace Test
             double[, ,] f_z = new double[Nx + 2, Ny + 2, Nz + 1];
 
             // Create structure for solver parameters
-            FluidSolver.solver_struct solver_prams = new FluidSolver.solver_struct();
+            FluidSolver.solver_struct solver_params = new FluidSolver.solver_struct();
 
-            solver_prams.tol = 1e-3;
-            solver_prams.min_iter = 1;
-            solver_prams.max_iter = 100;
-            solver_prams.verbose = false;
-            solver_prams.backtrace_order = 2;
+            solver_params.tol = 1e-4;
+            solver_params.min_iter = 1;
+            solver_params.max_iter = 100;
+            solver_params.verbose = false;
+            solver_params.backtrace_order = 2;
 
             // Create domain
             WindInflow omega = new WindInflow(Nx + 2, Ny + 2, Nz + 2, 100, 45, 30);
@@ -67,7 +67,7 @@ namespace Test
             omega.add_obstacle(30, 40, 15, 25, 0, 10);
 
             // Create FFD solver
-            FluidSolver ffd = new FluidSolver(omega, dt, nu, u0, v0, w0, solver_prams);
+            FluidSolver ffd = new FluidSolver(omega, dt, nu, u0, v0, w0, solver_params);
 
             // Create post processor and export initial conditions and geometry information
             PostProcessor pp = new PostProcessor(ffd, omega);
@@ -82,13 +82,41 @@ namespace Test
                 t += dt;
                 tstep++;
 
-                Console.WriteLine("Time t = {0}", t);   
+                Console.WriteLine("Time t = {0}", t);
+
+                double[,,] p_t2 = new double[ffd.p.GetLength(0), ffd.p.GetLength(1), ffd.p.GetLength(2)];
+                Array.Copy(ffd.p, 0, p_t2, 0, ffd.p.Length);
+                double[,,] u_t2 = new double[ffd.u.GetLength(0), ffd.u.GetLength(1), ffd.u.GetLength(2)];
+                Array.Copy(ffd.u, 0, u_t2, 0, ffd.u.Length);
+                double[,,] v_t2 = new double[ffd.v.GetLength(0), ffd.v.GetLength(1), ffd.v.GetLength(2)];
+                Array.Copy(ffd.v, 0, v_t2, 0, ffd.v.Length);
+                double[,,] w_t2 = new double[ffd.w.GetLength(0), ffd.w.GetLength(1), ffd.w.GetLength(2)];
+                Array.Copy(ffd.w, 0, w_t2, 0, ffd.w.Length);
 
                 // Solve single time step and export results
                 ffd.time_step(f_x, f_y, f_z);
                 //pp.export_data_vtk(String.Concat("city_test_", tstep, ".vtk"), t, false);
 
-                if(t % 1 == 1) Console.ReadKey();
+                double[] p_residuals;
+                double[,,] p_t1 = ffd.p;
+                Utilities.calculate_residuals(p_t1, p_t2, out p_residuals);
+                Console.WriteLine("p residuals: {0};{1};{2}", p_residuals[0], p_residuals[1], p_residuals[2]);
+                double[] u_residuals;
+                double[,,] u_t1 = ffd.u;
+                Utilities.calculate_residuals(u_t1, u_t2, out u_residuals);
+                Console.WriteLine("u residuals: {0};{1};{2}", u_residuals[0], u_residuals[1], u_residuals[2]);
+                double[] v_residuals;
+                double[,,] v_t1 = ffd.v;
+                Utilities.calculate_residuals(v_t1, v_t2, out v_residuals);
+                Console.WriteLine("v residuals: {0};{1};{2}", v_residuals[0], v_residuals[1], v_residuals[2]);
+                double[] w_residuals;
+                double[,,] w_t1 = ffd.w;
+                Utilities.calculate_residuals(w_t1, w_t2, out w_residuals);
+                Console.WriteLine("w residuals: {0};{1};{2}", w_residuals[0], w_residuals[1], w_residuals[2]);
+
+
+
+                if (t % 1 == 1) Console.ReadKey();
             }
         }
     }
