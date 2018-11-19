@@ -280,23 +280,8 @@ namespace FastFluidSolverMT
                     }
                 });
             sw1.Stop();
-            Console.WriteLine(";;Project divergence; {0}", sw1.Elapsed);
+            if (this.solver_params.verbose) Console.WriteLine(";;Project divergence; {0}", sw1.Elapsed);
             sw1.Reset();
-
-            //for (int i = 0; i < Nx; i ++)
-            //{
-            //    for (int j = 0; j < Ny; j++)
-            //    {
-            //        for (int k = 0; k < Nz; k++)
-            //        {
-            //            if (omega.obstacle_cells[i, j, k] == 0)
-            //            {
-            //                div[i, j, k] = ((u[i, j, k] - u[i - 1, j, k]) / hx +
-            //                       (v[i, j, k] - v[i, j - 1, k]) / hy + (w[i, j, k] - w[i, j, k - 1]) / hz) / dt;
-            //            }
-            //        }
-            //    }
-            //}
 
             sw1.Start();
             double a = -2 * (Math.Pow(hx, -2) + Math.Pow(hy, -2) + Math.Pow(hz, -2));
@@ -314,7 +299,7 @@ namespace FastFluidSolverMT
 
             jacobi_solve(a, c, div, p0, p, 1, solver_params, Nx, Ny, Nz, omega, u, v, w, p, hx, hy, hz);
             sw1.Stop();
-            Console.WriteLine(";;Jacobi; {0}", sw1.Elapsed);
+            if (this.solver_params.verbose) Console.WriteLine(";;Jacobi; {0}", sw1.Elapsed);
             sw1.Reset();
 
 
@@ -339,24 +324,6 @@ namespace FastFluidSolverMT
                     }
                 });
 
-            //for (int i = 0; i < u.GetLength(0); i++)
-            //{
-            //    for (int j = 0; j < u.GetLength(1); j++)
-            //    {
-            //        for (int k = 0; k < u.GetLength(2); k++)
-            //        {
-            //            double[] coordinate = new double[3];
-            //            coordinate[0] = i * hx;
-            //            coordinate[1] = (j - 0.5) * hy;
-            //            coordinate[2] = (k - 0.5) * hz;
-
-            //            if (Utilities.in_domain(coordinate, omega))
-            //            {
-            //                u[i, j, k] -= dt * (p[i + 1, j, k] - p[i, j, k]) / hx;
-            //            }
-            //        }
-            //    }
-            //}
 
 
             Parallel.For(0, v.GetLength(0), i =>
@@ -379,26 +346,6 @@ namespace FastFluidSolverMT
                 });
 
 
-            //for (int i = 0; i < v.GetLength(0); i++)
-            //{
-            //    for (int j = 0; j < v.GetLength(1); j++)
-            //    {
-            //        for (int k = 0; k < v.GetLength(2); k++)
-            //        {
-            //            double[] coordinate = new double[3];
-            //            coordinate[0] = (i - 0.5) * hx;
-            //            coordinate[1] = j * hy;
-            //            coordinate[2] = (k - 0.5) * hz;
-
-            //            if (Utilities.in_domain(coordinate, omega))
-            //            {
-            //                v[i, j, k] -= dt * (p[i, j + 1, k] - p[i, j, k]) / hy;
-            //            }
-            //        }
-            //    }
-            //}
-
-
             Parallel.For(0, w.GetLength(0), i =>
                 {
                     for (int j = 0; j < w.GetLength(1); j++)
@@ -418,34 +365,16 @@ namespace FastFluidSolverMT
                     }
                 });
             sw1.Stop();
-            Console.WriteLine(";;update velocity; {0}", sw1.Elapsed);
+            if (this.solver_params.verbose) Console.WriteLine(";;update velocity; {0}", sw1.Elapsed);
             sw1.Reset();
 
-            //for (int i = 0; i < w.GetLength(0); i++)
-            //{
-            //    for (int j = 0; j < w.GetLength(1); j++)
-            //    {
-            //        for (int k = 0; k < w.GetLength(2); k++)
-            //        {
-            //            double[] coordinate = new double[3];
-            //            coordinate[0] = (i - 0.5) * hx;
-            //            coordinate[1] = (j - 0.5) * hy;
-            //            coordinate[2] = k * hz;
-
-            //            if (Utilities.in_domain(coordinate, omega))
-            //            {
-            //                w[i, j, k] -= dt * (p[i, j, k + 1] - p[i, j, k]) / hz;
-            //            }
-            //        }
-            //    }
-            //}
-
+        
 
             sw1.Start();
             //apply_boundary_conditions_list();
             apply_boundary_conditions(Nx, Ny, Nz, omega, u, v, w, p);
             sw1.Stop();
-            Console.WriteLine(";;boundary conditions; {0}", sw1.Elapsed);
+            if(this.solver_params.verbose) Console.WriteLine(";;boundary conditions; {0}", sw1.Elapsed);
             sw1.Reset();
         }
 
@@ -1519,7 +1448,7 @@ namespace FastFluidSolverMT
             //apply_boundary_conditions_list();
             apply_boundary_conditions(Nx, Ny, Nz, omega, u, v, w, p);
             sw.Stop();
-            Console.WriteLine("apply boundary conditions;{0}", sw.Elapsed);
+            if (this.solver_params.verbose) Console.WriteLine("apply boundary conditions;{0}", sw.Elapsed);
             sw.Reset();
 
 
@@ -1531,7 +1460,7 @@ namespace FastFluidSolverMT
             add_force(f_y, v, dt);
             add_force(f_z, w, dt);
             sw.Stop();
-            Console.WriteLine("add force;{0}", sw.Elapsed);
+            if (this.solver_params.verbose) Console.WriteLine("add force;{0}", sw.Elapsed);
             sw.Reset();
 
 
@@ -1541,7 +1470,7 @@ namespace FastFluidSolverMT
             Array.Copy(w, 0, w_old, 0, w.Length);
             Array.Copy(p, 0, p_old, 0, p.Length);
             sw.Stop();
-            Console.WriteLine("copy arrays;{0}", sw.Elapsed);
+            if (this.solver_params.verbose) Console.WriteLine("copy arrays;{0}", sw.Elapsed);
             sw.Reset();
 
 
@@ -1550,7 +1479,7 @@ namespace FastFluidSolverMT
             diffuse(v_old, ref v, 3);
             diffuse(w_old, ref w, 4);
             sw.Stop();
-            Console.WriteLine("diffuse;{0}", sw.Elapsed);
+            if (this.solver_params.verbose) Console.WriteLine("diffuse;{0}", sw.Elapsed);
             sw.Reset();
 
 
@@ -1558,7 +1487,7 @@ namespace FastFluidSolverMT
             sw.Start();
             project();
             sw.Stop();
-            Console.WriteLine("project;{0}", sw.Elapsed);
+            if (this.solver_params.verbose) Console.WriteLine("project;{0}", sw.Elapsed);
             sw.Reset();
 
 
@@ -1568,7 +1497,7 @@ namespace FastFluidSolverMT
             Array.Copy(w, 0, w_old, 0, w.Length);
             Array.Copy(p, 0, p_old, 0, p.Length);
             sw.Stop();
-            Console.WriteLine("copy array;{0}", sw.Elapsed);
+            if (this.solver_params.verbose) Console.WriteLine("copy array;{0}", sw.Elapsed);
             sw.Reset();
 
 
@@ -1578,7 +1507,7 @@ namespace FastFluidSolverMT
             advect(v, v_old, u_old, v_old, w_old, 3, omega, this, hx, hy, hz, solver_params, dt, Nx, Ny, Nz, u, v, w, p);
             advect(w, w_old, u_old, v_old, w_old, 4, omega, this, hx, hy, hz, solver_params, dt, Nx, Ny, Nz, u, v, w, p);
             sw.Stop();
-            Console.WriteLine("advect;{0}", sw.Elapsed);
+            if (this.solver_params.verbose) Console.WriteLine("advect;{0}", sw.Elapsed);
             sw.Reset();
 
 
@@ -1589,7 +1518,7 @@ namespace FastFluidSolverMT
             sw.Start();
             project();
             sw.Stop();
-            Console.WriteLine("project;{0}", sw.Elapsed);
+            if (this.solver_params.verbose) Console.WriteLine("project;{0}", sw.Elapsed);
             sw.Reset();
         }
 

@@ -227,5 +227,33 @@ namespace FastFluidSolverMT
             err_l2 = Utilities.compute_L2_difference(err_array, zeros); //L2 norm of errors
             err_inf = err_array.Cast<double>().Max();
         }
+
+
+        /// <summary>
+        /// Calculate residuals (root mean square, RMS) in space between 2 timesteps.
+        /// </summary>
+        /// <param name="array_t1">3D array with quantity (velocity, pressure, or other) at t-1.</param>
+        /// <param name="array_t2">3D array with quantity (velocity, pressure, or other) at t.</param>
+        /// <param name="residuals">RMS of quantity. Min, Max, average, of all cells in domain.</param>
+        public static void calculate_residuals(double [,,] array_t1, double[,,] array_t2, out double[] residuals)
+        {
+            residuals = new double[3];
+
+            double[,,] res = new double[array_t1.GetLength(0), array_t1.GetLength(1), array_t1.GetLength(2)];
+            for (int i=0; i < array_t1.GetLength(0); i++)
+            {
+                for(int j=0; j < array_t1.GetLength(1); j++)
+                {
+                    for(int k=0; k < array_t1.GetLength(2);k++)
+                    {
+                        res[i, j, k] = Math.Sqrt(Math.Pow(array_t1[i, j, k] - array_t2[i, j, k], 2));
+                    }
+                }
+            }
+
+            residuals[0] = res.Cast<double>().Min();
+            residuals[1] = res.Cast<double>().Max();
+            residuals[2] = res.Cast<double>().Average();
+        }
     }
 }
