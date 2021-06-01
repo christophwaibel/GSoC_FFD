@@ -36,11 +36,26 @@ namespace FastFluidSolverMT
         float[] Vz0;                //velocity  scratch [] in Z
 
 
-        float[] loads;				//loads per cell. only important, if it is a solid
+        float[] loads;              //loads per cell. only important, if it is a solid
 
-
-        public FluidSolverMikeAsh(int GridSizeX, int GridSizeY, int GridSizeZ)
+        public struct solver_struct
         {
+            public int max_iter; //maximum number of iterations for Gauss-Seidel solver
+            public int min_iter; //minimum number of iterations
+            public double tol; //maximum relative error for Gauss-Seidel solver
+            public bool verbose;
+        }
+        private solver_struct solver_params;
+        private Domain omega;       // fluid domain
+
+        public FluidSolverMikeAsh(Domain omega, double dt, double nu, double[,,] u0, double[,,] v0,
+                double[,,] w0, solver_struct solver_prams,
+                int GridSizeX, int GridSizeY, int GridSizeZ)
+        {
+            this.omega = omega;
+
+
+
             G1 = GridSizeX;
             G2 = GridSizeY;
             G3 = GridSizeZ;
