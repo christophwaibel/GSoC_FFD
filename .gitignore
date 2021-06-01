@@ -1,0 +1,11 @@
+
+*.suo
+*.user
+*.ide
+*.ide-shm
+*.ide-wal
+
+bin
+obj
+
+/.vs
