@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 /*
@@ -34,11 +31,6 @@ namespace FastFluidSolverMT
         public double[, ,] boundary_v { get; protected set; }   //y component of velocity at boundary
         public double[, ,] boundary_w { get; protected set; }   //z component of velocity at boundary
 
-        //public List<int[]> obstacle_list = new List<int[]>();
-        //public List<int[]> normal_x_list = new List<int[]>();
-        //public List<int[]> normal_y_list = new List<int[]>();
-        //public List<int[]> normal_z_list = new List<int[]>();
-
         /// <summary>
         /// Labels "ghost cells" outside domain as obstacles and flags cells adjacent to them as boundary cells.
         /// </summary>
@@ -52,17 +44,11 @@ namespace FastFluidSolverMT
                     obstacle_cells[0, j, k] = 1;
                     obstacle_cells[Nx - 1, j, k] = 1;
 
-                    //obstacle_list.Add(new int[] { 0, j, k });
-                    //obstacle_list.Add(new int[] { Nx - 1, j, k });
-
                     boundary_cells[1, j, k] = 1;
                     boundary_cells[Nx - 2, j, k] = 1;
 
                     boundary_normal_x[1, j, k] = -1;
                     boundary_normal_x[Nx - 2, j, k] = 1;
-
-                    //normal_x_list.Add(new int[] { 1, j, k, -1 });
-                    //normal_x_list.Add(new int[] { Nx - 2, j, k, 1 });
                 }
             });
 
@@ -74,17 +60,11 @@ namespace FastFluidSolverMT
                     obstacle_cells[i, 0, k] = 1;
                     obstacle_cells[i, Ny - 1, k] = 1;
 
-                    //obstacle_list.Add(new int[] { i, 0, k });
-                    //obstacle_list.Add(new int[] { i, Ny - 1, k });
-
                     boundary_cells[i, 1, k] = 1;
                     boundary_cells[i, Ny - 2, k] = 1;
 
                     boundary_normal_y[i, 1, k] = -1;
                     boundary_normal_y[i, Ny - 2, k] = 1;
-
-                    //normal_y_list.Add(new int[] { i, 1, k, -1 });
-                    //normal_y_list.Add(new int[] { i, Ny - 1, k, 1 });
                 }
             });
 
@@ -96,17 +76,11 @@ namespace FastFluidSolverMT
                     obstacle_cells[i, j, 0] = 1;
                     obstacle_cells[i, j, Nz - 1] = 1;
 
-                    //obstacle_list.Add(new int[] { i, j, 0 });
-                    //obstacle_list.Add(new int[] { i, j, Nz - 1 });
-
                     boundary_cells[i, j, 1] = 1;
                     boundary_cells[i, j, Nz - 2] = 1;
 
                     boundary_normal_z[i, j, 1] = -1;
                     boundary_normal_z[i, j, Nz - 2] = 1;
-
-                    //normal_z_list.Add(new int[] { i, j, 1, -1 });
-                    //normal_z_list.Add(new int[] { i, j, Nz - 1, 1 });
                 }
             });
         }
@@ -203,7 +177,6 @@ namespace FastFluidSolverMT
                     for (int k = k_start; k < k_end; k++)
                     {
                         obstacle_cells[i + 1, j + 1, k + 1] = 1;
-                        //obstacle_list.Add(new int[] { i + 1, j + 1, k + 1 });
                     }
                 }
             });
