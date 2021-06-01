@@ -73,9 +73,9 @@ namespace FastFluidSolverMT
         /// <param name="u0">initial x component of velocity</param>
         /// <param name="v0">initial y component of velocity</param>
         /// <param name="w0">initial z component of velocity</param>
-        /// <param name="solver_prams">structure containing solver options</param>
+        /// <param name="solver_params">structure containing solver options</param>
         public FluidSolver(Domain omega, double dt, double nu, double[, ,] u0, double[, ,] v0,
-                double[, ,] w0, solver_struct solver_prams)
+                double[, ,] w0, solver_struct solver_params)
         {
             Nx = omega.Nx;
             Ny = omega.Ny;
@@ -89,7 +89,7 @@ namespace FastFluidSolverMT
             this.nu = nu;
 
             this.omega = omega;
-            this.solver_params = solver_prams;
+            this.solver_params = solver_params;
 
             p = new double[Nx, Ny, Nz];
 

@@ -26,7 +26,7 @@ namespace FastFluidSolverMT
         float densityIn;            //inflow density
         public float velocityIn;            //inflow velocity
         float[] density;            //density [] value, per cell
-        float[] densityScratch; //density scratch []. scratch, so things can be changes. sth like a copy
+        float[] densityScratch; //density scratch []. scratch, so things can be changed. sth like a copy
 
         public float[] Vx;					//velocity [] in direction X
         public float[] Vy;					//velocity [] in direction Y
@@ -48,17 +48,28 @@ namespace FastFluidSolverMT
         private solver_struct solver_params;
         private Domain omega;       // fluid domain
 
+        /// <summary>
+        /// Constructor for Mike Ash's solver in 3D and with obstacles. 
+        /// Original code: https://www.mikeash.com/pyblog/fluid-simulation-for-dummies.html
+        /// </summary>
+        /// <param name="omega">domain omega</param>
+        /// <param name="dt">time step size</param>
+        /// <param name="nu">viscosity</param>
+        /// <param name="u0">initial x component of velocity</param>
+        /// <param name="v0">initial y component of velocity</param>
+        /// <param name="w0">initial z component of velocity</param>
+        /// <param name="solver_params">structure containing solver options</param>
         public FluidSolverMikeAsh(Domain omega, double dt, double nu, double[,,] u0, double[,,] v0,
-                double[,,] w0, solver_struct solver_prams,
-                int GridSizeX, int GridSizeY, int GridSizeZ)
+                double[,,] w0, solver_struct solver_params)
         {
             this.omega = omega;
+            this.dt = (float)dt;
+            this.viscosity = (float)nu;
 
-
-
-            G1 = GridSizeX;
-            G2 = GridSizeY;
-            G3 = GridSizeZ;
+            // int GridSizeX, int GridSizeY, int GridSizeZ
+            G1 = omega.Nx;
+            G2 = omega.Ny;
+            G3 = omega.Nz;
 
             int nCellsX, nCellsY, nCellsZ;
             nCellsX = G1;
